@@ -1,0 +1,9 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-service
+
+  kafka:
+    bootstrap-servers: localhost:9092

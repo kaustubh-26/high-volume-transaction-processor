@@ -1,20 +1,42 @@
 package com.kaustubh.transactions.api.service;
 
+import java.time.Instant;
+
 import org.springframework.stereotype.Service;
 
 import com.kaustubh.transactions.common.api.CreateTransactionRequest;
 import com.kaustubh.transactions.common.api.CreateTransactionResponse;
+import com.kaustubh.transactions.common.enums.TransactionStatus;
+import com.kaustubh.transactions.common.event.TransactionRequestEvent;
 import com.kaustubh.transactions.common.util.IdGenerator;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class TransactionIngressService {
+
+    private final TransactionEventPublisher transactionEventPublisher;
 
     public CreateTransactionResponse accept(CreateTransactionRequest request) {
         String transactionId = IdGenerator.newTransactionId();
 
+        TransactionRequestEvent event = new TransactionRequestEvent(
+            IdGenerator.newEventId(),
+            transactionId,
+            request.idempotencyKey(),
+            request.accountId(),
+            request.amount(),
+            request.currency(),
+            request.type(),
+            Instant.now()
+        );
+
+        transactionEventPublisher.publish(event);
+
         return new CreateTransactionResponse(
             transactionId,
-            "ACCEPTED"
+            TransactionStatus.RECEIVED.name()
         );
     }
 }

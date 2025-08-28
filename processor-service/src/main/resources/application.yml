@@ -19,7 +19,17 @@ spring:
     listener:
       ack-mode: manual
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
+
 app:
   kafka:
     topic:
       transaction-requests: transaction_requests
+
+  idempotency:
+    key-prefix: "txn:idem:"
+    ttl-hours: 48

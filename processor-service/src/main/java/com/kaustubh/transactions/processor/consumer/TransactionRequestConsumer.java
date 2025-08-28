@@ -5,6 +5,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 import com.kaustubh.transactions.common.event.TransactionRequestEvent;
+import com.kaustubh.transactions.processor.service.ProcessingOutcome;
 import com.kaustubh.transactions.processor.service.TransactionProcessingService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,11 +24,21 @@ public class TransactionRequestConsumer {
     )
     public void consume(TransactionRequestEvent event, Acknowledgment acknowledgement) {
         try {
-            transactionProcessingService.process(event);
+            ProcessingOutcome outcome = transactionProcessingService.process(event);
+
             acknowledgement.acknowledge();
 
+            if (outcome == ProcessingOutcome.DUPLICATE) {
+                log.info(
+                        "Acknowledged duplicate transaction request transactionId={} eventId={}",
+                        event.transactionId(),
+                        event.eventId()
+                );
+                return;
+            }
+
             log.info(
-                "Acknowledged transaction request transactionId={} eventId={}",
+                "Acknowledged new transaction request transactionId={} eventId={}",
                 event.transactionId(),
                 event.eventId()
             );

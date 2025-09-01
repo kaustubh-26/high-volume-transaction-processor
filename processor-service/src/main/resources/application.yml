@@ -16,6 +16,13 @@ spring:
         spring.json.trusted.packages: com.kaustubh.transactions.common.event
         spring.json.value.default.type: com.kaustubh.transactions.common.event.TransactionRequestEvent
         spring.json.use.type.headers: false
+    producer:
+      acks: all
+      retries: 10
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
     listener:
       ack-mode: manual
 
@@ -29,6 +36,7 @@ app:
   kafka:
     topic:
       transaction-requests: transaction_requests
+      transaction-log: transaction_log
 
   idempotency:
     key-prefix: "txn:idem:"

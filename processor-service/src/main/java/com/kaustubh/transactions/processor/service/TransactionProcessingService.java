@@ -1,8 +1,13 @@
 package com.kaustubh.transactions.processor.service;
 
+import java.time.Instant;
+
 import org.springframework.stereotype.Service;
 
+import com.kaustubh.transactions.common.enums.TransactionStatus;
+import com.kaustubh.transactions.common.event.TransactionLogEvent;
 import com.kaustubh.transactions.common.event.TransactionRequestEvent;
+import com.kaustubh.transactions.common.util.IdGenerator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +19,7 @@ public class TransactionProcessingService {
 
     private final RedisIdempotencyStore redisIdempotencyStore;
     
-    public ProcessingOutcome process(TransactionRequestEvent event) {
+    public ProcessingResult process(TransactionRequestEvent event) {
         validate(event);
 
         boolean acquired = redisIdempotencyStore.acquire(
@@ -32,8 +37,20 @@ public class TransactionProcessingService {
                     existingTransactionId
             );
 
-            return ProcessingOutcome.DUPLICATE;
+            return ProcessingResult.duplicateResult();
         }
+
+        TransactionLogEvent transactionLogEvent = new TransactionLogEvent(
+                IdGenerator.newEventId(),
+                event.transactionId(),
+                event.idempotencyKey(),
+                event.accountId(),
+                event.amount(),
+                event.currency(),
+                event.type(),
+                TransactionStatus.ACCEPTED,
+                Instant.now()
+        );
 
         log.info(
                 "Processed transaction request transactionId={} accountId={} amount={} currency={} type={}",
@@ -44,7 +61,7 @@ public class TransactionProcessingService {
                 event.type()
         );
 
-        return ProcessingOutcome.PROCESSED;
+        return ProcessingResult.processed(transactionLogEvent);
     }
 
     private void validate(TransactionRequestEvent event) {

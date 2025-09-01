@@ -5,9 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import com.kaustubh.transactions.processor.config.IdempotencyProperties;
+import com.kaustubh.transactions.processor.config.KafkaTopicProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(IdempotencyProperties.class)
+@EnableConfigurationProperties({
+    IdempotencyProperties.class,
+    KafkaTopicProperties.class
+})
 public class ProcessorServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(ProcessorServiceApplication.class, args);

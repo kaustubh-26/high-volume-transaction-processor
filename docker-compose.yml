@@ -38,6 +38,26 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres:
+    image: postgres:16
+    container_name: hvtp-postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: payments
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payments"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   kafka_data:
   redis_data:
+  postgres_data:

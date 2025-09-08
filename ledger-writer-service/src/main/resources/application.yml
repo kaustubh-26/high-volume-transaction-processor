@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ledger-writer-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ledger-writer-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.kaustubh.transactions.common.event
+        spring.json.value.default.type: com.kaustubh.transactions.common.event.TransactionLogEvent
+    listener:
+      ack-mode: manual
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payments
+    username: postgres
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+app:
+  kafka:
+    topic:
+      transaction-log: transaction_log

@@ -8,6 +8,7 @@ spring:
       group-id: ledger-writer-group
       auto-offset-reset: earliest
       enable-auto-commit: false
+      max-poll-records: 200
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
@@ -26,3 +27,6 @@ app:
   kafka:
     topic:
       transaction-log: transaction_log
+
+  ledger:
+    batch-size: 100

@@ -1,5 +1,7 @@
 package com.kaustubh.transactions.ledger.consumer;
 
+import java.util.List;
+
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -17,27 +19,25 @@ public class TransactionLogConsumer {
 
     private final LedgerPersistenceService ledgerPersistenceService;
 
-    @KafkaListener(
-            topics = "${app.kafka.topic.transaction-log}",
-            groupId = "${spring.kafka.consumer.group-id}"
-    )
-    public void consume(TransactionLogEvent event, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "${app.kafka.topic.transaction-log}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+    public void consume(List<TransactionLogEvent> events, Acknowledgment acknowledgment) {
+        if (events == null || events.isEmpty()) {
+            return;
+        }
         try {
-            ledgerPersistenceService.persist(event);
+            ledgerPersistenceService.persistBatch(events);
             acknowledgment.acknowledge();
 
             log.info(
-                    "Acknowledged ledger event transactionId={} eventId={}",
-                    event.transactionId(),
-                    event.eventId()
-            );
+                    "Acknowledged ledger batch size={} firstTransactionId={} lastTransactionId={}",
+                    events.size(),
+                    events.getFirst().transactionId(),
+                    events.getLast().transactionId());
         } catch (Exception ex) {
             log.error(
-                    "Failed to persist ledger event transactionId={} eventId={}",
-                    event.transactionId(),
-                    event.eventId(),
-                    ex
-            );
+                    "Failed to persist ledger batch size={}",
+                    events.size(),
+                    ex);
             throw ex;
         }
     }

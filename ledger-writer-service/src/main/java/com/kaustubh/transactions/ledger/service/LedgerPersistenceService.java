@@ -1,5 +1,7 @@
 package com.kaustubh.transactions.ledger.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
@@ -15,25 +17,31 @@ public class LedgerPersistenceService {
 
     private final LedgerRepository ledgerRepository;
 
-    public void persist(TransactionLogEvent event) {
-        int rowsInserted = ledgerRepository.insert(event);
-
-        if (rowsInserted == 0) {
-            log.warn(
-                    "Ledger entry already exists transactionId={} idempotencyKey={}",
-                    event.transactionId(),
-                    event.idempotencyKey()
-            );
+    public void persistBatch(List<TransactionLogEvent> events) {
+        if (events == null || events.isEmpty()) {
             return;
         }
 
+        int[][] results = ledgerRepository.batchInsert(events);
+
+        int insertedCount = 0;
+        int skippedCount = 0;
+
+        for (int[] batch : results) {
+            for (int result : batch) {
+                if (result > 0) {
+                    insertedCount += result;
+                } else {
+                    skippedCount++;
+                }
+            }
+        }
+
         log.info(
-                "Ledger entry persisted transactionId={} accountId={} amount={} currency={} status={}",
-                event.transactionId(),
-                event.accountId(),
-                event.amount(),
-                event.currency(),
-                event.status()
+                "Ledger batch persisted totalEvents={} inserted={} skippedOrConflicted={}",
+                events.size(),
+                insertedCount,
+                skippedCount
         );
     }
 }

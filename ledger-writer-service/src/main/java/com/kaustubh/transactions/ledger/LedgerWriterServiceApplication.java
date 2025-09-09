@@ -2,8 +2,12 @@ package com.kaustubh.transactions.ledger;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
+import com.kaustubh.transactions.ledger.config.LedgerBatchProperties;
 
 @SpringBootApplication
+@EnableConfigurationProperties(LedgerBatchProperties.class)
 public class LedgerWriterServiceApplication {
 
     public static void main(String[] args) {

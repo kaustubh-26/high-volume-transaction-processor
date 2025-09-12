@@ -20,6 +20,7 @@ public class TransactionLogPublisher {
 
     public void publish(TransactionLogEvent event) {
         try {
+            // accountId is the partition key to preserve per-account event order
             var result = kafkaTemplate.send(
                     kafkaTopicProperties.transactionLog(),
                     event.accountId(),

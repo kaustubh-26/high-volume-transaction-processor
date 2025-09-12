@@ -32,7 +32,7 @@ public class TransactionEventPublisher {
                 safeEvent.accountId(),
                 "accountId must not be null"
         );
-
+        // accountId is the partition key to preserve per-account event order
         kafkaTemplate.send(
             topic,
             accountId,

@@ -5,9 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import com.kaustubh.transactions.ledger.config.LedgerBatchProperties;
+import com.kaustubh.transactions.ledger.config.ProcessorKafkaListenerProperties;
 
 @SpringBootApplication
-@EnableConfigurationProperties(LedgerBatchProperties.class)
+@EnableConfigurationProperties({
+    LedgerBatchProperties.class,
+    ProcessorKafkaListenerProperties.class
+})
 public class LedgerWriterServiceApplication {
 
     public static void main(String[] args) {

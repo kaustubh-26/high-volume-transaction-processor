@@ -8,6 +8,7 @@ spring:
       group-id: processor-group
       auto-offset-reset: earliest
       enable-auto-commit: false
+      max-poll-records: 100
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
@@ -34,6 +35,8 @@ spring:
 
 app:
   kafka:
+    listener:
+      concurrency: 3
     topic:
       transaction-requests: transaction_requests
       transaction-log: transaction_log

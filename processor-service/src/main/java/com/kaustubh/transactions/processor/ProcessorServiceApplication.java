@@ -6,11 +6,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 import com.kaustubh.transactions.processor.config.IdempotencyProperties;
 import com.kaustubh.transactions.processor.config.KafkaTopicProperties;
+import com.kaustubh.transactions.processor.config.ProcessorKafkaListenerProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties({
     IdempotencyProperties.class,
-    KafkaTopicProperties.class
+    KafkaTopicProperties.class,
+    ProcessorKafkaListenerProperties.class
 })
 public class ProcessorServiceApplication {
     public static void main(String[] args) {

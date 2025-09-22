@@ -32,3 +32,8 @@ app:
 
   ledger:
     batch-size: 100
+
+  reconciliation:
+    enabled: true
+    fixed-delay-ms: 60000
+    lookback-minutes: 15

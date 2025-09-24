@@ -7,12 +7,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.kaustubh.transactions.ledger.config.LedgerBatchProperties;
 import com.kaustubh.transactions.ledger.config.ProcessorKafkaListenerProperties;
 import com.kaustubh.transactions.ledger.config.ReconciliationProperties;
+import com.kaustubh.transactions.ledger.config.ReplayProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties({
         LedgerBatchProperties.class,
         ProcessorKafkaListenerProperties.class,
-        ReconciliationProperties.class
+        ReconciliationProperties.class,
+        ReplayProperties.class
 })
 public class LedgerWriterServiceApplication {
 

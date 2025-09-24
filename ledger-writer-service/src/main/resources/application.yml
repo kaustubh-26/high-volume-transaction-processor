@@ -37,3 +37,10 @@ app:
     enabled: true
     fixed-delay-ms: 60000
     lookback-minutes: 15
+
+  replay:
+    enabled-on-startup: false
+    consumer-group-id: ledger-replay-group
+    max-poll-records: 200
+    poll-timeout-ms: 1000
+    idle-stop-after-polls: 5

@@ -14,6 +14,7 @@ public record TransactionRequestEvent(
     BigDecimal amount,
     String currency,
     TransactionType type,
+    String correlationId,
     Instant createdAt
 ) {
     

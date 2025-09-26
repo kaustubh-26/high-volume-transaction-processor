@@ -44,3 +44,18 @@ app:
     max-poll-records: 200
     poll-timeout-ms: 1000
     idle-stop-after-polls: 5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

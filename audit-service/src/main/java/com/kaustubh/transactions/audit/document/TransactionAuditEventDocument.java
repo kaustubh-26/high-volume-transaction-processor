@@ -24,6 +24,9 @@ public record TransactionAuditEventDocument(
     @Indexed
     String accountId,
 
+    @Indexed 
+    String correlationId,
+
     BigDecimal amount,
     String currency,
     String type,

@@ -26,13 +26,16 @@ public class AuditPersistenceService {
                 event.transactionId(),
                 event.idempotencyKey(),
                 event.accountId(),
+                event.correlationId(),
                 event.amount(),
                 event.currency(),
                 event.type().name(),
                 event.status().name(),
                 event.processedAt(),
                 Instant.now(),
-                sourceTopic);
+                sourceTopic
+        );
+
 
         repository.save(document);
 

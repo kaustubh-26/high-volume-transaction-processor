@@ -44,3 +44,18 @@ app:
   idempotency:
     key-prefix: "txn:idem:"
     ttl-hours: 48
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

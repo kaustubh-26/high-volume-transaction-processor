@@ -19,3 +19,18 @@ app:
   kafka:
     topic:
       transaction-requests: transaction_requests
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

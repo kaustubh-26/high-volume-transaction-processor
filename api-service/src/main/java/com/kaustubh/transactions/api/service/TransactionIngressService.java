@@ -2,6 +2,7 @@ package com.kaustubh.transactions.api.service;
 
 import java.time.Instant;
 
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import com.kaustubh.transactions.common.api.CreateTransactionRequest;
@@ -20,16 +21,18 @@ public class TransactionIngressService {
 
     public CreateTransactionResponse accept(CreateTransactionRequest request) {
         String transactionId = IdGenerator.newTransactionId();
+        String correlationId = MDC.get("correlationId");
 
         TransactionRequestEvent event = new TransactionRequestEvent(
-            IdGenerator.newEventId(),
-            transactionId,
-            request.idempotencyKey(),
-            request.accountId(),
-            request.amount(),
-            request.currency(),
-            request.type(),
-            Instant.now()
+                IdGenerator.newEventId(),
+                transactionId,
+                request.idempotencyKey(),
+                request.accountId(),
+                request.amount(),
+                request.currency(),
+                request.type(),
+                correlationId,
+                Instant.now()
         );
 
         transactionEventPublisher.publish(event);

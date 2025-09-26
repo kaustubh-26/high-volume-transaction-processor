@@ -16,6 +16,7 @@ public record TransactionLogEvent(
     String currency,
     TransactionType type,
     TransactionStatus status,
+    String correlationId,
     Instant processedAt
 ) {
 }

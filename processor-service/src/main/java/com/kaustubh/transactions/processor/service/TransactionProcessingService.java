@@ -18,14 +18,13 @@ import lombok.extern.slf4j.Slf4j;
 public class TransactionProcessingService {
 
     private final RedisIdempotencyStore redisIdempotencyStore;
-    
+
     public ProcessingResult process(TransactionRequestEvent event) {
         validate(event);
 
         boolean acquired = redisIdempotencyStore.acquire(
-            event.idempotencyKey(),
-            event.transactionId()
-        );
+                event.idempotencyKey(),
+                event.transactionId());
 
         if (!acquired) {
             String existingTransactionId = redisIdempotencyStore.getExistingTransactionId(event.idempotencyKey());
@@ -34,8 +33,7 @@ public class TransactionProcessingService {
                     "Duplicate transaction request detected idempotencyKey={} incomingTransactionId={} existingTransactionId={}",
                     event.idempotencyKey(),
                     event.transactionId(),
-                    existingTransactionId
-            );
+                    existingTransactionId);
 
             return ProcessingResult.duplicateResult();
         }
@@ -49,6 +47,7 @@ public class TransactionProcessingService {
                 event.currency(),
                 event.type(),
                 TransactionStatus.ACCEPTED,
+                event.correlationId(),
                 Instant.now()
         );
 
@@ -58,8 +57,7 @@ public class TransactionProcessingService {
                 event.accountId(),
                 event.amount(),
                 event.currency(),
-                event.type()
-        );
+                event.type());
 
         return ProcessingResult.processed(transactionLogEvent);
     }

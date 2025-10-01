@@ -49,3 +49,35 @@ This system scales horizontally through Kafka partitions and consumer groups.
 - Increase topic partitions first when sustained throughput requires more parallelism.
 - Then scale service replicas or listener concurrency up to the partition count.
 - Keep `accountId` as the partition key to preserve per-account ordering.
+
+
+## Operational endpoints
+
+Each service exposes:
+
+- `/actuator/health`
+- `/actuator/info`
+- `/actuator/prometheus`
+
+## Suggested local checks
+
+- API health: `curl http://localhost:8080/actuator/health`
+- Processor health: `curl http://localhost:8081/actuator/health`
+- Ledger writer health: `curl http://localhost:8082/actuator/health`
+- Audit service health: `curl http://localhost:8083/actuator/health`
+
+## Dead-letter topics
+
+- `transaction_requests_dlt`
+- `transaction_log_dlt`
+
+Messages land here after retries are exhausted or when non-retryable errors occur.
+
+## Useful dashboards to add later
+
+- Kafka consumer lag by group
+- Ledger batch size
+- Redis idempotency hit ratio
+- Postgres insert latency
+- DLT message rate
+- Reconciliation drift count

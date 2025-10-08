@@ -43,13 +43,15 @@ public class TransactionEventPublisher {
                 return;
             }
 
-            log.info(
-                "Published transaction request event transactionId={} topic={} partition={} offset={}",
-                event.transactionId(),
-                result.getRecordMetadata().topic(),
-                result.getRecordMetadata().partition(),
-                result.getRecordMetadata().offset()
-            );
+            if (log.isDebugEnabled()) {
+                log.debug(
+                    "Published transaction request event transactionId={} topic={} partition={} offset={}",
+                    event.transactionId(),
+                    result.getRecordMetadata().topic(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset()
+                );
+            }
         });
     }
 }

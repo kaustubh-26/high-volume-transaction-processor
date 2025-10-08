@@ -19,6 +19,15 @@ app:
   kafka:
     topic:
       transaction-requests: transaction_requests
+  security:
+    verify:
+      allowed-clock-skew: 2m
+      nonce-enforced: false
+      nonce-ttl: 2m
+      merchants:
+        merchant-demo:
+          salt-key: ${APP_MERCHANT_DEMO_SALT_KEY:merchant-demo-secret-key}
+          salt-index: "1"
 
 management:
   endpoints:

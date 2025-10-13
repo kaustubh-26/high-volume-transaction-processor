@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.0</version>
-		<relativePath/>
-	</parent>
-	<groupId>com.kaustubh.transactions</groupId>
-	<artifactId>high-volume-transaction-processor</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>high-volume-transaction-processor</name>
-	<description>High volume transaction processor with Kafka Redis Postgres Mongo</description>
-	<packaging>pom</packaging>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.0</version>
+        <relativePath/>
+    </parent>
+    <groupId>com.kaustubh.transactions</groupId>
+    <artifactId>high-volume-transaction-processor</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>high-volume-transaction-processor</name>
+    <description>High volume transaction processor with Kafka Redis Postgres Mongo</description>
+    <packaging>pom</packaging>
 
-	 <modules>
+    <modules>
         <module>common-model</module>
         <module>api-service</module>
         <module>processor-service</module>
@@ -23,8 +23,21 @@
         <module>audit-service</module>
     </modules>
 
-	<properties>
-		<java.version>21</java.version>
-	</properties>
+    <properties>
+        <java.version>21</java.version>
+        <testcontainers.version>2.0.2</testcontainers.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 	
 </project>

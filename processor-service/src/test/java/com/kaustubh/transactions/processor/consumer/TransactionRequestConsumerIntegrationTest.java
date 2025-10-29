@@ -91,6 +91,7 @@ class TransactionRequestConsumerIntegrationTest {
                 new BigDecimal("10.00"),
                 "USD",
                 TransactionType.DEBIT,
+                null,
                 "corr-1",
                 Instant.now());
 

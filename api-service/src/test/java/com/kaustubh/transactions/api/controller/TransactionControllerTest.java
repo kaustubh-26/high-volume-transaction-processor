@@ -36,7 +36,8 @@ class TransactionControllerTest {
                 "acc-123",
                 new BigDecimal("100.00"),
                 "INR",
-                TransactionType.CREDIT
+                TransactionType.CREDIT,
+                "https://merchant.example/webhook"
         );
 
         CreateTransactionResponse serviceResponse = new CreateTransactionResponse(

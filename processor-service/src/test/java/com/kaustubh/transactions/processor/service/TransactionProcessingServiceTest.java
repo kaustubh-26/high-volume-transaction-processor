@@ -86,6 +86,7 @@ class TransactionProcessingServiceTest {
                 new BigDecimal("0.00"),
                 "USD",
                 TransactionType.DEBIT,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:00Z")
         );
@@ -105,6 +106,7 @@ class TransactionProcessingServiceTest {
                 new BigDecimal("10.00"),
                 "USD",
                 TransactionType.CREDIT,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:00Z")
         );
@@ -123,6 +125,7 @@ class TransactionProcessingServiceTest {
                 new BigDecimal("10.00"),
                 "USD",
                 TransactionType.DEBIT,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:00Z")
         );

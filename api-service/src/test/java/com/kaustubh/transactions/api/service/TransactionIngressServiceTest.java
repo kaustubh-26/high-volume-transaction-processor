@@ -35,7 +35,8 @@ class TransactionIngressServiceTest {
                     "acct-1",
                     new BigDecimal("50.00"),
                     "USD",
-                    TransactionType.DEBIT
+                    TransactionType.DEBIT,
+                    "https://merchant.example/webhook"
             );
 
             CreateTransactionResponse response = service.accept(request);
@@ -58,6 +59,7 @@ class TransactionIngressServiceTest {
             assertThat(event.amount()).isEqualTo(request.amount());
             assertThat(event.currency()).isEqualTo(request.currency());
             assertThat(event.type()).isEqualTo(request.type());
+            assertThat(event.callbackUrl()).isEqualTo(request.callbackUrl());
         } finally {
             MDC.remove("correlationId");
         }

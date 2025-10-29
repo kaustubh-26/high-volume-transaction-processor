@@ -40,6 +40,7 @@ class TransactionEventPublisherTest {
                 new BigDecimal("12.34"),
                 "USD",
                 TransactionType.DEBIT,
+                null,
                 "corr-1",
                 Instant.now()
         );
@@ -76,6 +77,7 @@ class TransactionEventPublisherTest {
                 new BigDecimal("1.00"),
                 "USD",
                 TransactionType.CREDIT,
+                null,
                 "corr-2",
                 Instant.now()
         );
@@ -98,6 +100,7 @@ class TransactionEventPublisherTest {
                 new BigDecimal("1.00"),
                 "USD",
                 TransactionType.REFUND,
+                null,
                 "corr-3",
                 Instant.now()
         );

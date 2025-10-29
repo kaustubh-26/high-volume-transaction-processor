@@ -31,6 +31,7 @@ public class TransactionIngressService {
                 request.amount(),
                 request.currency(),
                 request.type(),
+                request.callbackUrl(),
                 correlationId,
                 Instant.now()
         );

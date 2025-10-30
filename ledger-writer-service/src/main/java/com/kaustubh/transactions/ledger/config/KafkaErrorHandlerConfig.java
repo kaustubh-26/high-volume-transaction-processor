@@ -10,19 +10,26 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
+import com.kaustubh.transactions.ledger.webhook.LedgerWebhookRecoverer;
+import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
+
 @Configuration
 public class KafkaErrorHandlerConfig {
 
     @Bean
-    public CommonErrorHandler ledgerErrorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
+    public CommonErrorHandler ledgerErrorHandler(
+            KafkaTemplate<String, Object> kafkaTemplate,
+            TransactionWebhookNotifier webhookNotifier) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
                 (ConsumerRecord<?, ?> consumerRecord, Exception ex) ->
                         new TopicPartition(consumerRecord.topic() + "_dlt", consumerRecord.partition())
         );
 
+        LedgerWebhookRecoverer webhookRecoverer = new LedgerWebhookRecoverer(recoverer, webhookNotifier);
+
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                recoverer,
+                webhookRecoverer,
                 new FixedBackOff(1000L, 2L)
         );
 

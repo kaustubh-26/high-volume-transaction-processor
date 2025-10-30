@@ -10,12 +10,16 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
+import com.kaustubh.transactions.processor.webhook.ProcessorWebhookRecoverer;
+import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
+
 @Configuration
 public class KafkaErrorHandlerConfig {
 
     @Bean
     public CommonErrorHandler processorErrorHandler(
-            KafkaTemplate<String, Object> kafkaTemplate) {
+            KafkaTemplate<String, Object> kafkaTemplate,
+            TransactionWebhookNotifier webhookNotifier) {
 
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
@@ -23,8 +27,10 @@ public class KafkaErrorHandlerConfig {
                         new TopicPartition(consumerRecord.topic() + "_dlt", consumerRecord.partition())
         );
 
+        ProcessorWebhookRecoverer webhookRecoverer = new ProcessorWebhookRecoverer(recoverer, webhookNotifier);
+
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                recoverer,
+                webhookRecoverer,
                 new FixedBackOff(1000L, 2L)
         );
 

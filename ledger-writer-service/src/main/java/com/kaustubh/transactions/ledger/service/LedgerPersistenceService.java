@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
 import com.kaustubh.transactions.ledger.repository.LedgerRepository;
+import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 public class LedgerPersistenceService {
 
     private final LedgerRepository ledgerRepository;
+    private final TransactionWebhookNotifier webhookNotifier;
 
     public void persistBatch(List<TransactionLogEvent> events) {
         if (events == null || events.isEmpty()) {
@@ -43,5 +46,14 @@ public class LedgerPersistenceService {
                 insertedCount,
                 skippedCount
         );
+
+        for (TransactionLogEvent event : events) {
+            webhookNotifier.sendStatusUpdate(
+                    event.callbackUrl(),
+                    TransactionStatus.PERSISTED,
+                    event.transactionId(),
+                    event.correlationId()
+            );
+        }
     }
 }

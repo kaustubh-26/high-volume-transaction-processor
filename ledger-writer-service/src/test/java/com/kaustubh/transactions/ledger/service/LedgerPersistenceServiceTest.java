@@ -19,6 +19,7 @@ import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.enums.TransactionType;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
 import com.kaustubh.transactions.ledger.repository.LedgerRepository;
+import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
 
 @ExtendWith(MockitoExtension.class)
 class LedgerPersistenceServiceTest {
@@ -26,11 +27,14 @@ class LedgerPersistenceServiceTest {
     @Mock
     private LedgerRepository ledgerRepository;
 
+    @Mock
+    private TransactionWebhookNotifier webhookNotifier;
+
     private LedgerPersistenceService service;
 
     @BeforeEach
     void setUp() {
-        service = new LedgerPersistenceService(ledgerRepository);
+        service = new LedgerPersistenceService(ledgerRepository, webhookNotifier);
     }
 
     @Test
@@ -61,6 +65,7 @@ class LedgerPersistenceServiceTest {
                 "USD",
                 TransactionType.DEBIT,
                 TransactionStatus.ACCEPTED,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:00Z")
         );

@@ -66,17 +66,18 @@ class TransactionLogReplayServiceTest {
                 "INR",
                 TransactionType.CREDIT,
                 TransactionStatus.ACCEPTED,
+                null,
                 "corr-123",
                 Instant.now()
         );
 
-        ConsumerRecord<String, TransactionLogEvent> record =
+        ConsumerRecord<String, TransactionLogEvent> consumerRecord =
                 new ConsumerRecord<>("topic", 0, 0L, "key", event);
 
         ConsumerRecords<String, TransactionLogEvent> records =
                 new ConsumerRecords<>(Map.of(
                         new TopicPartition("topic", 0),
-                        List.of(record)
+                        List.of(consumerRecord)
                 ));
 
         when(consumer.poll(any(Duration.class)))

@@ -74,6 +74,7 @@ class TransactionAuditConsumerTest {
                 "USD",
                 TransactionType.DEBIT,
                 TransactionStatus.ACCEPTED,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:00Z")
         );

@@ -47,6 +47,7 @@ public class TransactionProcessingService {
                 event.currency(),
                 event.type(),
                 TransactionStatus.ACCEPTED,
+                event.callbackUrl(),
                 event.correlationId(),
                 Instant.now()
         );

@@ -26,6 +26,7 @@ import com.kaustubh.transactions.common.event.TransactionRequestEvent;
 import com.kaustubh.transactions.processor.service.ProcessingResult;
 import com.kaustubh.transactions.processor.service.TransactionLogPublisher;
 import com.kaustubh.transactions.processor.service.TransactionProcessingService;
+import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionRequestConsumerTest {
@@ -37,13 +38,16 @@ class TransactionRequestConsumerTest {
     private TransactionLogPublisher transactionLogPublisher;
 
     @Mock
+    private TransactionWebhookNotifier webhookNotifier;
+
+    @Mock
     private Acknowledgment acknowledgment;
 
     private TransactionRequestConsumer consumer;
 
     @BeforeEach
     void setUp() {
-        consumer = new TransactionRequestConsumer(transactionProcessingService, transactionLogPublisher);
+        consumer = new TransactionRequestConsumer(transactionProcessingService, transactionLogPublisher, webhookNotifier);
     }
 
     @Test
@@ -108,6 +112,7 @@ class TransactionRequestConsumerTest {
                 "USD",
                 TransactionType.DEBIT,
                 TransactionStatus.ACCEPTED,
+                null,
                 "corr-1",
                 Instant.parse("2024-01-01T00:00:10Z")
         );

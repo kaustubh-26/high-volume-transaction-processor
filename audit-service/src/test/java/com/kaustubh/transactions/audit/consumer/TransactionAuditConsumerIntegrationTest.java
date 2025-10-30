@@ -29,7 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
@@ -58,7 +58,7 @@ class TransactionAuditConsumerIntegrationTest {
 
     @Container
     static final MongoDBContainer MONGODB = new MongoDBContainer(
-            DockerImageName.parse("mongo:6.0"));
+            DockerImageName.parse("mongo:6.0")).withReplicaSet();
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
@@ -91,6 +91,7 @@ class TransactionAuditConsumerIntegrationTest {
                 "USD",
                 TransactionType.DEBIT,
                 TransactionStatus.ACCEPTED,
+                null,
                 "corr-1",
                 Instant.now()
         );

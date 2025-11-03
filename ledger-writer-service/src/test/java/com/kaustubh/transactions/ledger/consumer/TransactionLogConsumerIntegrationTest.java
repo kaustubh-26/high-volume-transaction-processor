@@ -132,7 +132,7 @@ class TransactionLogConsumerIntegrationTest {
                 String.class,
                 transactionId
         );
-        assertThat(status).isEqualTo(TransactionStatus.ACCEPTED.name());
+        assertThat(status).isEqualTo(TransactionStatus.PERSISTED.name());
     }
 
     private void sendEvent(TransactionLogEvent event)

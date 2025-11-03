@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
 import com.kaustubh.transactions.ledger.config.LedgerBatchProperties;
 
@@ -33,12 +34,13 @@ public class LedgerRepository {
                 (PreparedStatement ps, TransactionLogEvent event) -> {
                     ps.setString(1, event.transactionId());
                     ps.setString(2, event.idempotencyKey());
-                    ps.setString(3, event.accountId());
-                    ps.setBigDecimal(4, event.amount());
-                    ps.setString(5, event.currency());
-                    ps.setString(6, event.type().name());
-                    ps.setString(7, event.status().name());
-                    ps.setTimestamp(8, java.sql.Timestamp.from(event.processedAt()));
+                    ps.setString(3, event.merchantId());
+                    ps.setString(4, event.accountId());
+                    ps.setBigDecimal(5, event.amount());
+                    ps.setString(6, event.currency());
+                    ps.setString(7, event.type().name());
+                    ps.setString(8, TransactionStatus.PERSISTED.name());
+                    ps.setTimestamp(9, java.sql.Timestamp.from(event.processedAt()));
                 }
         );
     }

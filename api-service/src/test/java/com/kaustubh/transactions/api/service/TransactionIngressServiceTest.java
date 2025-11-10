@@ -39,7 +39,7 @@ class TransactionIngressServiceTest {
                     "https://merchant.example/webhook"
             );
 
-            CreateTransactionResponse response = service.accept(request);
+            CreateTransactionResponse response = service.accept(request, "merchant-demo");
 
             ArgumentCaptor<TransactionRequestEvent> captor = ArgumentCaptor.forClass(TransactionRequestEvent.class);
             verify(transactionEventPublisher).publish(captor.capture());
@@ -55,6 +55,7 @@ class TransactionIngressServiceTest {
             assertThat(event.correlationId()).isEqualTo("corr-123");
 
             assertThat(event.idempotencyKey()).isEqualTo(request.idempotencyKey());
+            assertThat(event.merchantId()).isEqualTo("merchant-demo");
             assertThat(event.accountId()).isEqualTo(request.accountId());
             assertThat(event.amount()).isEqualTo(request.amount());
             assertThat(event.currency()).isEqualTo(request.currency());

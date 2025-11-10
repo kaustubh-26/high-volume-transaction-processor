@@ -45,13 +45,13 @@ class TransactionControllerTest {
                 "ACCEPTED"
         );
 
-        when(transactionIngressService.accept(request)).thenReturn(serviceResponse);
+        when(transactionIngressService.accept(request, "merchant-demo")).thenReturn(serviceResponse);
 
         ResponseEntity<CreateTransactionResponse> response =
-                transactionController.createTransaction(request);
+                transactionController.createTransaction("merchant-demo", request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
-        verify(transactionIngressService).accept(request);
+        verify(transactionIngressService).accept(request, "merchant-demo");
     }
 }

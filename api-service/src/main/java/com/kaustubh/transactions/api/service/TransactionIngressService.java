@@ -19,7 +19,7 @@ public class TransactionIngressService {
 
     private final TransactionEventPublisher transactionEventPublisher;
 
-    public CreateTransactionResponse accept(CreateTransactionRequest request) {
+    public CreateTransactionResponse accept(CreateTransactionRequest request, String merchantId) {
         String transactionId = IdGenerator.newTransactionId();
         String correlationId = MDC.get("correlationId");
 
@@ -27,6 +27,7 @@ public class TransactionIngressService {
                 IdGenerator.newEventId(),
                 transactionId,
                 request.idempotencyKey(),
+                merchantId,
                 request.accountId(),
                 request.amount(),
                 request.currency(),

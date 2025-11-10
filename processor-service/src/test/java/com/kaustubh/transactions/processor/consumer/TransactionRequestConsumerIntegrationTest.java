@@ -29,9 +29,9 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import com.kaustubh.transactions.common.enums.TransactionStatus;
@@ -53,8 +53,6 @@ class TransactionRequestConsumerIntegrationTest {
     private static final String LOG_TOPIC = "transaction_log_it";
 
     @Container
-    // static final KafkaContainer KAFKA = new KafkaContainer(
-    // DockerImageName.parse("confluentinc/cp-kafka:7.5.0"));
     static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
 
     @Container
@@ -87,6 +85,7 @@ class TransactionRequestConsumerIntegrationTest {
                 UUID.randomUUID(),
                 "tx-1",
                 "idem-1",
+                "merchant-1",
                 "acct-1",
                 new BigDecimal("10.00"),
                 "USD",
@@ -98,7 +97,7 @@ class TransactionRequestConsumerIntegrationTest {
         kafkaTemplate.send(REQUESTS_TOPIC, event.accountId(), event)
                 .get(10, TimeUnit.SECONDS);
 
-        try (KafkaConsumer<String, TransactionLogEvent> consumer = createLogConsumer()) {
+        try (KafkaConsumer<String, TransactionLogEvent> consumer = new KafkaConsumer<>(createLogConsumerProperties())) {
             consumer.subscribe(List.of(LOG_TOPIC));
             TransactionLogEvent logEvent = pollForLogEvent(consumer, Duration.ofSeconds(15));
 
@@ -112,7 +111,7 @@ class TransactionRequestConsumerIntegrationTest {
         }
     }
 
-    private KafkaConsumer<String, TransactionLogEvent> createLogConsumer() {
+    private Properties createLogConsumerProperties() {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "processor-log-verifier-" + UUID.randomUUID());
@@ -123,7 +122,7 @@ class TransactionRequestConsumerIntegrationTest {
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, TransactionLogEvent.class.getName());
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
 
-        return new KafkaConsumer<>(props);
+        return props;
     }
 
     private TransactionLogEvent pollForLogEvent(

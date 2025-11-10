@@ -42,6 +42,7 @@ public class TransactionProcessingService {
                 IdGenerator.newEventId(),
                 event.transactionId(),
                 event.idempotencyKey(),
+                event.merchantId(),
                 event.accountId(),
                 event.amount(),
                 event.currency(),

@@ -11,6 +11,7 @@ public record TransactionLogEvent(
     UUID eventId,
     String transactionId,
     String idempotencyKey,
+    String merchantId,
     String accountId,
     BigDecimal amount,
     String currency,

@@ -61,6 +61,7 @@ class TransactionLogReplayServiceTest {
                 UUID.randomUUID(),
                 "tx-123",
                 "idem-123",
+                "merchant-1",
                 "acc-123",
                 new BigDecimal("250.00"),
                 "INR",

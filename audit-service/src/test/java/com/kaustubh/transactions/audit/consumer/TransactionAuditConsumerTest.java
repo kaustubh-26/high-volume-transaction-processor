@@ -69,6 +69,7 @@ class TransactionAuditConsumerTest {
                 UUID.randomUUID(),
                 "tx-1",
                 "idem-1",
+                "merchant-1",
                 "acct-1",
                 new BigDecimal("10.00"),
                 "USD",

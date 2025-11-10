@@ -4,9 +4,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kaustubh.transactions.api.service.TransactionIngressService;
+import com.kaustubh.transactions.api.security.VerifySignatureFilter;
 import com.kaustubh.transactions.common.api.CreateTransactionRequest;
 import com.kaustubh.transactions.common.api.CreateTransactionResponse;
 
@@ -22,9 +24,10 @@ public class TransactionController {
 
     @PostMapping
     public ResponseEntity<CreateTransactionResponse> createTransaction(
+        @RequestHeader(value = VerifySignatureFilter.HEADER_MERCHANT_ID, required = false) String merchantId,
         @Valid @RequestBody CreateTransactionRequest request) {
 
-            CreateTransactionResponse response = transactionIngressService.accept(request);
+            CreateTransactionResponse response = transactionIngressService.accept(request, merchantId);
             
             return ResponseEntity.accepted().body(response);
         }

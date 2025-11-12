@@ -60,6 +60,7 @@ class LedgerPersistenceServiceTest {
                 UUID.randomUUID(),
                 transactionId,
                 "idem-1",
+                "merchant-1",
                 "acct-1",
                 new BigDecimal("10.00"),
                 "USD",

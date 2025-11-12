@@ -39,6 +39,7 @@ class AuditPersistenceServiceTest {
                 UUID.randomUUID(),
                 "tx-1",
                 "idem-1",
+                "merchant-1",
                 "acct-1",
                 new BigDecimal("12.34"),
                 "USD",
@@ -59,6 +60,7 @@ class AuditPersistenceServiceTest {
         assertThat(document.eventId()).isEqualTo(event.eventId());
         assertThat(document.transactionId()).isEqualTo(event.transactionId());
         assertThat(document.idempotencyKey()).isEqualTo(event.idempotencyKey());
+        assertThat(document.merchantId()).isEqualTo(event.merchantId());
         assertThat(document.accountId()).isEqualTo(event.accountId());
         assertThat(document.correlationId()).isEqualTo(event.correlationId());
         assertThat(document.amount()).isEqualTo(event.amount());

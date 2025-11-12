@@ -8,7 +8,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document
+@Document(collection = "transaction_audit_events")
 public record TransactionAuditEventDocument(
     @Id
     String id,
@@ -22,6 +22,9 @@ public record TransactionAuditEventDocument(
     String idempotencyKey,
 
     @Indexed
+    String merchantId,
+
+    @Indexed
     String accountId,
 
     @Indexed 
@@ -31,6 +34,8 @@ public record TransactionAuditEventDocument(
     String currency,
     String type,
     String status,
+
+    @Indexed
     Instant processedAt,
     Instant storedAt,
     String sourceTopic

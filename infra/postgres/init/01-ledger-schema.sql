@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS ledger_entries (
     id BIGSERIAL PRIMARY KEY,
     transaction_id VARCHAR(64) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
+    merchant_id VARCHAR(64) NOT NULL,
     account_id VARCHAR(64) NOT NULL,
     amount NUMERIC(18,2) NOT NULL,
     currency VARCHAR(8) NOT NULL,

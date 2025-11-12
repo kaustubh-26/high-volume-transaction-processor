@@ -22,8 +22,8 @@ public class LedgerRepository {
     public int[][] batchInsert(List<TransactionLogEvent> events) {
         String sql = """
                 INSERT INTO ledger_entries
-                (transaction_id, idempotency_key, account_id, amount, currency, type, status, processed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (transaction_id, idempotency_key, merchant_id, account_id, amount, currency, type, status, processed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (transaction_id) DO NOTHING
                 """;
 

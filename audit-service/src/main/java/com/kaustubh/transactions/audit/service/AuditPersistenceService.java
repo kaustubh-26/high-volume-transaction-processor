@@ -25,6 +25,7 @@ public class AuditPersistenceService {
                 event.eventId(),
                 event.transactionId(),
                 event.idempotencyKey(),
+                event.merchantId(),
                 event.accountId(),
                 event.correlationId(),
                 event.amount(),

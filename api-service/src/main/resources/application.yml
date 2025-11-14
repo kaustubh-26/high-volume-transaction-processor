@@ -15,10 +15,28 @@ spring:
       properties:
         enable.idempotence: true
 
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payments}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
 app:
   kafka:
     topic:
       transaction-requests: transaction_requests
+  read-auth:
+    api-keys: ${APP_READ_API_KEYS:}
+    rate-limits: ${APP_READ_RATE_LIMITS:}
+    rate-window-seconds: ${APP_READ_RATE_WINDOW_SECONDS:60}
+    default-limit-per-window: ${APP_READ_DEFAULT_LIMIT_PER_WINDOW:60}
+    api-key-merchants: ${APP_READ_API_KEY_MERCHANTS:}
+    ownership-ttl-hours: ${APP_READ_OWNERSHIP_TTL_HOURS:24}
+    redis-config-key: ${APP_READ_CONFIG_REDIS_KEY:read-auth:config}
   security:
     verify:
       allowed-clock-skew: 2m

@@ -103,11 +103,25 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payments
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_READ_API_KEYS: ${APP_READ_API_KEYS:-}
+      APP_READ_RATE_LIMITS: ${APP_READ_RATE_LIMITS:-}
+      APP_READ_RATE_WINDOW_SECONDS: ${APP_READ_RATE_WINDOW_SECONDS:-60}
+      APP_READ_DEFAULT_LIMIT_PER_WINDOW: ${APP_READ_DEFAULT_LIMIT_PER_WINDOW:-60}
+      APP_READ_API_KEY_MERCHANTS: ${APP_READ_API_KEY_MERCHANTS:-}
+      APP_READ_OWNERSHIP_TTL_HOURS: ${APP_READ_OWNERSHIP_TTL_HOURS:-24}
+      APP_READ_CONFIG_REDIS_KEY: ${APP_READ_CONFIG_REDIS_KEY:-read-auth:config}
       SERVER_PORT: 8080
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
       MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always

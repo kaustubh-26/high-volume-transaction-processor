@@ -25,6 +25,10 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
 
+springdoc:
+  swagger-ui:
+    enabled: false
+
 app:
   kafka:
     topic:
@@ -46,6 +50,10 @@ app:
         merchant-demo:
           salt-key: ${APP_MERCHANT_DEMO_SALT_KEY:merchant-demo-secret-key}
           salt-index: "1"
+  swagger:
+    merchant-id: merchant-demo
+    salt-key: ${APP_MERCHANT_DEMO_SALT_KEY:merchant-demo-secret-key}
+    salt-index: 1
 
 management:
   endpoints:

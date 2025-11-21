@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.kafka.topic")
 public record KafkaTopicProperties(
     String transactionRequests,
-    String transactionLog
+    String transactionLog,
+    String webhookDispatch
 ) {
 }

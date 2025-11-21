@@ -43,6 +43,7 @@ class TransactionProcessingServiceTest {
 
         ProcessingResult result = service.process(event);
 
+        assertThat(result.outcome()).isEqualTo(ProcessingResult.Outcome.PROCESSED);
         assertThat(result.duplicate()).isFalse();
 
         TransactionLogEvent logEvent = result.transactionLogEvent();
@@ -63,7 +64,7 @@ class TransactionProcessingServiceTest {
     }
 
     @Test
-    void process_returnsDuplicateResultWhenIdempotencyRejected() {
+    void process_returnsDuplicateRejectedWhenExistingTransactionDiffers() {
         TransactionRequestEvent event = validEvent();
 
         when(redisIdempotencyStore.acquire("idem-1", "tx-1")).thenReturn(false);
@@ -71,6 +72,22 @@ class TransactionProcessingServiceTest {
 
         ProcessingResult result = service.process(event);
 
+        assertThat(result.outcome()).isEqualTo(ProcessingResult.Outcome.DUPLICATE_REJECTED);
+        assertThat(result.duplicate()).isTrue();
+        assertThat(result.transactionLogEvent()).isNull();
+        verify(redisIdempotencyStore).getExistingTransactionId("idem-1");
+    }
+
+    @Test
+    void process_returnsDuplicateReplayWhenExistingTransactionMatchesIncomingRequest() {
+        TransactionRequestEvent event = validEvent();
+
+        when(redisIdempotencyStore.acquire("idem-1", "tx-1")).thenReturn(false);
+        when(redisIdempotencyStore.getExistingTransactionId("idem-1")).thenReturn("tx-1");
+
+        ProcessingResult result = service.process(event);
+
+        assertThat(result.outcome()).isEqualTo(ProcessingResult.Outcome.DUPLICATE_REPLAY);
         assertThat(result.duplicate()).isTrue();
         assertThat(result.transactionLogEvent()).isNull();
         verify(redisIdempotencyStore).getExistingTransactionId("idem-1");

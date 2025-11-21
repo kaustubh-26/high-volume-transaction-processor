@@ -11,7 +11,7 @@ import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 
 import com.kaustubh.transactions.processor.webhook.ProcessorWebhookRecoverer;
-import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
+import com.kaustubh.transactions.processor.service.WebhookDispatchPublisher;
 
 @Configuration
 public class KafkaErrorHandlerConfig {
@@ -19,7 +19,7 @@ public class KafkaErrorHandlerConfig {
     @Bean
     public CommonErrorHandler processorErrorHandler(
             KafkaTemplate<String, Object> kafkaTemplate,
-            TransactionWebhookNotifier webhookNotifier) {
+            WebhookDispatchPublisher webhookDispatchPublisher) {
 
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
@@ -27,7 +27,7 @@ public class KafkaErrorHandlerConfig {
                         new TopicPartition(consumerRecord.topic() + "_dlt", consumerRecord.partition())
         );
 
-        ProcessorWebhookRecoverer webhookRecoverer = new ProcessorWebhookRecoverer(recoverer, webhookNotifier);
+        ProcessorWebhookRecoverer webhookRecoverer = new ProcessorWebhookRecoverer(recoverer, webhookDispatchPublisher);
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
                 webhookRecoverer,

@@ -29,13 +29,23 @@ public class TransactionProcessingService {
         if (!acquired) {
             String existingTransactionId = redisIdempotencyStore.getExistingTransactionId(event.idempotencyKey());
 
+            if (event.transactionId().equals(existingTransactionId)) {
+                log.info(
+                        "Replaying accepted transaction request idempotencyKey={} transactionId={}",
+                        event.idempotencyKey(),
+                        event.transactionId()
+                );
+                return ProcessingResult.duplicateReplayResult();
+            }
+
             log.warn(
                     "Duplicate transaction request detected idempotencyKey={} incomingTransactionId={} existingTransactionId={}",
                     event.idempotencyKey(),
                     event.transactionId(),
-                    existingTransactionId);
+                    existingTransactionId
+            );
 
-            return ProcessingResult.duplicateResult();
+            return ProcessingResult.duplicateRejectedResult();
         }
 
         TransactionLogEvent transactionLogEvent = new TransactionLogEvent(

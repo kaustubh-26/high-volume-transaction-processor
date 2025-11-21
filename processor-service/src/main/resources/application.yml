@@ -36,10 +36,11 @@ spring:
 app:
   kafka:
     listener:
-      concurrency: 3
+      concurrency: 6
     topic:
       transaction-requests: transaction_requests
       transaction-log: transaction_log
+      webhook-dispatch: webhook_dispatch
 
   idempotency:
     key-prefix: "txn:idem:"

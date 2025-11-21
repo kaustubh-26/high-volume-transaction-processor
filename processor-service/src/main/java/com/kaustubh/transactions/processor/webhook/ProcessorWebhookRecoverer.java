@@ -6,21 +6,22 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 
+import com.kaustubh.transactions.common.event.WebhookDispatchEvent;
 import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.event.TransactionRequestEvent;
-import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
+import com.kaustubh.transactions.processor.service.WebhookDispatchPublisher;
 
 public class ProcessorWebhookRecoverer implements ConsumerRecordRecoverer {
 
     private final DeadLetterPublishingRecoverer delegate;
-    private final TransactionWebhookNotifier webhookNotifier;
+    private final WebhookDispatchPublisher webhookDispatchPublisher;
 
     public ProcessorWebhookRecoverer(
             DeadLetterPublishingRecoverer delegate,
-            TransactionWebhookNotifier webhookNotifier
+            WebhookDispatchPublisher webhookDispatchPublisher
     ) {
         this.delegate = delegate;
-        this.webhookNotifier = webhookNotifier;
+        this.webhookDispatchPublisher = webhookDispatchPublisher;
     }
 
     @Override
@@ -33,13 +34,13 @@ public class ProcessorWebhookRecoverer implements ConsumerRecordRecoverer {
                     ? TransactionStatus.REJECTED
                     : TransactionStatus.FAILED;
 
-            webhookNotifier.sendStatusUpdate(
+            webhookDispatchPublisher.publish(WebhookDispatchEvent.statusUpdate(
                     event.callbackUrl(),
-                    status,
                     event.transactionId(),
+                    status,
                     event.correlationId(),
                     Instant.now()
-            );
+            ));
         }
 
         delegate.accept(consumerRecord, ex);

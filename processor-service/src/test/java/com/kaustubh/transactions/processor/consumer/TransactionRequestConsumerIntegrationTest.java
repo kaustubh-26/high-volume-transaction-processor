@@ -38,6 +38,7 @@ import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.enums.TransactionType;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
 import com.kaustubh.transactions.common.event.TransactionRequestEvent;
+import com.kaustubh.transactions.common.event.WebhookDispatchEvent;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers
@@ -51,6 +52,7 @@ class TransactionRequestConsumerIntegrationTest {
 
     private static final String REQUESTS_TOPIC = "transaction_requests_it";
     private static final String LOG_TOPIC = "transaction_log_it";
+    private static final String WEBHOOK_DISPATCH_TOPIC = "webhook_dispatch_it";
 
     @Container
     static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
@@ -67,6 +69,7 @@ class TransactionRequestConsumerIntegrationTest {
         registry.add("spring.kafka.consumer.auto-offset-reset", () -> "earliest");
         registry.add("app.kafka.topic.transaction-requests", () -> REQUESTS_TOPIC);
         registry.add("app.kafka.topic.transaction-log", () -> LOG_TOPIC);
+        registry.add("app.kafka.topic.webhook-dispatch", () -> WEBHOOK_DISPATCH_TOPIC);
         registry.add("app.kafka.listener.concurrency", () -> 1);
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
@@ -80,6 +83,7 @@ class TransactionRequestConsumerIntegrationTest {
     void consume_processesRequestAndPublishesTransactionLogEvent() throws Exception {
         createTopic(REQUESTS_TOPIC);
         createTopic(LOG_TOPIC);
+        createTopic(WEBHOOK_DISPATCH_TOPIC);
 
         TransactionRequestEvent event = new TransactionRequestEvent(
                 UUID.randomUUID(),
@@ -90,7 +94,7 @@ class TransactionRequestConsumerIntegrationTest {
                 new BigDecimal("10.00"),
                 "USD",
                 TransactionType.DEBIT,
-                null,
+                "https://merchant.example/webhook",
                 "corr-1",
                 Instant.now());
 
@@ -109,6 +113,19 @@ class TransactionRequestConsumerIntegrationTest {
             assertThat(logEvent.accountId()).isEqualTo(event.accountId());
             assertThat(logEvent.status()).isEqualTo(TransactionStatus.ACCEPTED);
         }
+
+        try (KafkaConsumer<String, WebhookDispatchEvent> consumer = new KafkaConsumer<>(createWebhookConsumerProperties())) {
+            consumer.subscribe(List.of(WEBHOOK_DISPATCH_TOPIC));
+            WebhookDispatchEvent dispatchEvent = pollForWebhookDispatchEvent(consumer, Duration.ofSeconds(15));
+
+            if (dispatchEvent == null) {
+                fail("Timed out waiting for webhook dispatch event");
+            }
+
+            assertThat(dispatchEvent.transactionId()).isEqualTo(event.transactionId());
+            assertThat(dispatchEvent.callbackUrl()).isEqualTo(event.callbackUrl());
+            assertThat(dispatchEvent.status()).isEqualTo(TransactionStatus.ACCEPTED.name());
+        }
     }
 
     private Properties createLogConsumerProperties() {
@@ -125,12 +142,39 @@ class TransactionRequestConsumerIntegrationTest {
         return props;
     }
 
+    private Properties createWebhookConsumerProperties() {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "processor-webhook-verifier-" + UUID.randomUUID());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.kaustubh.transactions.common.event");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, WebhookDispatchEvent.class.getName());
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+
+        return props;
+    }
+
     private TransactionLogEvent pollForLogEvent(
             KafkaConsumer<String, TransactionLogEvent> consumer,
             Duration timeout) {
         long deadline = System.currentTimeMillis() + timeout.toMillis();
         while (System.currentTimeMillis() < deadline) {
             ConsumerRecords<String, TransactionLogEvent> records = consumer.poll(Duration.ofMillis(500));
+            if (!records.isEmpty()) {
+                return records.iterator().next().value();
+            }
+        }
+        return null;
+    }
+
+    private WebhookDispatchEvent pollForWebhookDispatchEvent(
+            KafkaConsumer<String, WebhookDispatchEvent> consumer,
+            Duration timeout) {
+        long deadline = System.currentTimeMillis() + timeout.toMillis();
+        while (System.currentTimeMillis() < deadline) {
+            ConsumerRecords<String, WebhookDispatchEvent> records = consumer.poll(Duration.ofMillis(500));
             if (!records.isEmpty()) {
                 return records.iterator().next().value();
             }

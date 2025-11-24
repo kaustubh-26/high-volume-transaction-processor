@@ -27,6 +27,13 @@ echo "Creating topics..."
 /opt/kafka/bin/kafka-topics.sh \
   --bootstrap-server kafka:29092 \
   --create --if-not-exists \
+  --topic webhook_dispatch \
+  --replication-factor 1 \
+  --partitions 6
+
+/opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka:29092 \
+  --create --if-not-exists \
   --topic transaction_requests_dlt \
   --replication-factor 1 \
   --partitions 6
@@ -35,6 +42,13 @@ echo "Creating topics..."
   --bootstrap-server kafka:29092 \
   --create --if-not-exists \
   --topic transaction_log_dlt \
+  --replication-factor 1 \
+  --partitions 6
+
+/opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server kafka:29092 \
+  --create --if-not-exists \
+  --topic webhook_dispatch_dlt \
   --replication-factor 1 \
   --partitions 6
 

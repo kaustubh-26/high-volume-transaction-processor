@@ -24,7 +24,7 @@ spring:
 app:
   kafka:
     listener:
-      concurrency: 3
+      concurrency: 6
     topic:
       transaction-log: transaction_log
 

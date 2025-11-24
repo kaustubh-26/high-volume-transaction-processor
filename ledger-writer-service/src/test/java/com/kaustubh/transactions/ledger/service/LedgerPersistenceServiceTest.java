@@ -12,14 +12,15 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.enums.TransactionType;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
+import com.kaustubh.transactions.common.event.WebhookDispatchEvent;
 import com.kaustubh.transactions.ledger.repository.LedgerRepository;
-import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
 
 @ExtendWith(MockitoExtension.class)
 class LedgerPersistenceServiceTest {
@@ -28,13 +29,13 @@ class LedgerPersistenceServiceTest {
     private LedgerRepository ledgerRepository;
 
     @Mock
-    private TransactionWebhookNotifier webhookNotifier;
+    private WebhookDispatchPublisher webhookDispatchPublisher;
 
     private LedgerPersistenceService service;
 
     @BeforeEach
     void setUp() {
-        service = new LedgerPersistenceService(ledgerRepository, webhookNotifier);
+        service = new LedgerPersistenceService(ledgerRepository, webhookDispatchPublisher);
     }
 
     @Test
@@ -53,6 +54,32 @@ class LedgerPersistenceServiceTest {
         service.persistBatch(events);
 
         verify(ledgerRepository).batchInsert(events);
+        ArgumentCaptor<WebhookDispatchEvent> captor = ArgumentCaptor.forClass(WebhookDispatchEvent.class);
+        verify(webhookDispatchPublisher, org.mockito.Mockito.times(2)).publish(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getAllValues())
+                .extracting(
+                        WebhookDispatchEvent::callbackUrl,
+                        WebhookDispatchEvent::transactionId,
+                        WebhookDispatchEvent::status,
+                        WebhookDispatchEvent::correlationId,
+                        WebhookDispatchEvent::occurredAt
+                )
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(
+                                null,
+                                "tx-1",
+                                TransactionStatus.PERSISTED.name(),
+                                "corr-1",
+                                Instant.parse("2024-01-01T00:00:00Z")
+                        ),
+                        org.assertj.core.groups.Tuple.tuple(
+                                null,
+                                "tx-2",
+                                TransactionStatus.PERSISTED.name(),
+                                "corr-1",
+                                Instant.parse("2024-01-01T00:00:00Z")
+                        )
+                );
     }
 
     private TransactionLogEvent logEvent(String transactionId) {

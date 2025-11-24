@@ -22,11 +22,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.enums.TransactionType;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
+import com.kaustubh.transactions.ledger.config.KafkaTopicProperties;
 import com.kaustubh.transactions.ledger.config.ReplayProperties;
 
 @Tag("unit")
@@ -45,14 +45,13 @@ class TransactionLogReplayServiceTest {
         );
 
         KafkaConsumer<String, TransactionLogEvent> consumer = mock(KafkaConsumer.class);
+        KafkaTopicProperties topicProperties = new KafkaTopicProperties("topic", "webhook_dispatch");
 
         TransactionLogReplayService service = spy(
-                new TransactionLogReplayService(persistenceService, props, Map.of())
+                new TransactionLogReplayService(persistenceService, props, topicProperties, Map.of())
         );
 
         doReturn(consumer).when(service).createConsumer();
-
-        ReflectionTestUtils.setField(service, "transactionLogTopic", "topic");
 
         PartitionInfo partitionInfo = new PartitionInfo("topic", 0, null, null, null);
         when(consumer.partitionsFor("topic")).thenReturn(List.of(partitionInfo));

@@ -1,10 +1,5 @@
 package com.kaustubh.transactions.ledger.webhook;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -12,14 +7,18 @@ import java.util.UUID;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 
 import com.kaustubh.transactions.common.enums.TransactionStatus;
 import com.kaustubh.transactions.common.enums.TransactionType;
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
-import com.kaustubh.transactions.common.webhook.TransactionWebhookNotifier;
+import com.kaustubh.transactions.common.event.WebhookDispatchEvent;
+import com.kaustubh.transactions.ledger.service.WebhookDispatchPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class LedgerWebhookRecovererTest {
@@ -28,47 +27,43 @@ class LedgerWebhookRecovererTest {
     private DeadLetterPublishingRecoverer delegate;
 
     @Mock
-    private TransactionWebhookNotifier webhookNotifier;
+    private WebhookDispatchPublisher webhookDispatchPublisher;
 
     @Test
-    void accept_sendsFailedWebhookForTransactionLogEvent() {
-        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookNotifier);
+    void accept_publishesFailedWebhookDispatchForTransactionLogEvent() {
+        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookDispatchPublisher);
         TransactionLogEvent event = transactionLogEvent();
         ConsumerRecord<String, Object> consumerRecord = new ConsumerRecord<>("transaction_log", 0, 0L, "key", event);
         RuntimeException exception = new RuntimeException("boom");
 
         recoverer.accept(consumerRecord, exception);
 
-        verify(webhookNotifier).sendStatusUpdate(
-                eq(event.callbackUrl()),
-                eq(TransactionStatus.FAILED),
-                eq(event.transactionId()),
-                eq(event.correlationId()),
-                any(Instant.class)
-        );
+        ArgumentCaptor<WebhookDispatchEvent> eventCaptor = ArgumentCaptor.forClass(WebhookDispatchEvent.class);
+        verify(webhookDispatchPublisher).publish(eventCaptor.capture());
+        assertDispatch(eventCaptor.getValue(), event, TransactionStatus.FAILED);
         verify(delegate).accept(consumerRecord, exception);
     }
 
     @Test
     void accept_delegatesWithoutWebhookForUnknownPayload() {
-        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookNotifier);
+        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookDispatchPublisher);
         ConsumerRecord<String, Object> consumerRecord = new ConsumerRecord<>("transaction_log", 0, 0L, "key", "not-an-event");
         RuntimeException exception = new RuntimeException("boom");
 
         recoverer.accept(consumerRecord, exception);
 
-        verifyNoInteractions(webhookNotifier);
+        verifyNoInteractions(webhookDispatchPublisher);
         verify(delegate).accept(consumerRecord, exception);
     }
 
     @Test
     void accept_ignoresMissingRecord() {
-        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookNotifier);
+        LedgerWebhookRecoverer recoverer = new LedgerWebhookRecoverer(delegate, webhookDispatchPublisher);
         RuntimeException exception = new RuntimeException("boom");
 
         recoverer.accept(null, exception);
 
-        verifyNoInteractions(webhookNotifier, delegate);
+        verifyNoInteractions(webhookDispatchPublisher, delegate);
     }
 
     private TransactionLogEvent transactionLogEvent() {
@@ -86,5 +81,17 @@ class LedgerWebhookRecovererTest {
                 "corr-1",
                 Instant.parse("2026-03-22T10:15:30Z")
         );
+    }
+
+    private void assertDispatch(
+            WebhookDispatchEvent dispatchEvent,
+            TransactionLogEvent transactionLogEvent,
+            TransactionStatus status
+    ) {
+        org.assertj.core.api.Assertions.assertThat(dispatchEvent.callbackUrl()).isEqualTo(transactionLogEvent.callbackUrl());
+        org.assertj.core.api.Assertions.assertThat(dispatchEvent.transactionId()).isEqualTo(transactionLogEvent.transactionId());
+        org.assertj.core.api.Assertions.assertThat(dispatchEvent.status()).isEqualTo(status.name());
+        org.assertj.core.api.Assertions.assertThat(dispatchEvent.correlationId()).isEqualTo(transactionLogEvent.correlationId());
+        org.assertj.core.api.Assertions.assertThat(dispatchEvent.occurredAt()).isNotNull();
     }
 }

@@ -9,10 +9,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.kaustubh.transactions.common.event.TransactionLogEvent;
+import com.kaustubh.transactions.ledger.config.KafkaTopicProperties;
 import com.kaustubh.transactions.ledger.config.ReplayProperties;
 
 import lombok.RequiredArgsConstructor;
@@ -25,10 +25,8 @@ public class TransactionLogReplayService {
 
     private final LedgerPersistenceService ledgerPersistenceService;
     private final ReplayProperties replayProperties;
+    private final KafkaTopicProperties kafkaTopicProperties;
     private final Map<String, Object> replayConsumerProperties;
-
-    @Value("${app.kafka.topic.transaction-log}")
-    private String transactionLogTopic;
 
     protected KafkaConsumer<String, TransactionLogEvent> createConsumer() {
         return new KafkaConsumer<>(replayConsumerProperties);
@@ -37,7 +35,7 @@ public class TransactionLogReplayService {
     public void replayFromBeginning() {
         try (KafkaConsumer<String, TransactionLogEvent> consumer = createConsumer()) {
 
-            List<TopicPartition> partitions = consumer.partitionsFor(transactionLogTopic)
+            List<TopicPartition> partitions = consumer.partitionsFor(kafkaTopicProperties.transactionLog())
                     .stream()
                     .map(this::toTopicPartition)
                     .toList();
@@ -63,7 +61,7 @@ public class TransactionLogReplayService {
                 List<TransactionLogEvent> events = new java.util.ArrayList<>();
 
                 for (ConsumerRecord<String, TransactionLogEvent> consumerRecord : records
-                        .records(transactionLogTopic)) {
+                        .records(kafkaTopicProperties.transactionLog())) {
                     events.add(consumerRecord.value());
                 }
 

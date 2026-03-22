@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360" role="img" aria-label="Ingress throughput chart">
+<rect width="900" height="360" fill="#ffffff"/>
+<text x="450" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#111827">Ingress Throughput (k6 constant arrival)</text>
+<line x1="80" y1="50" x2="80" y2="290" stroke="#111827" stroke-width="1"/>
+<line x1="80" y1="290" x2="860" y2="290" stroke="#111827" stroke-width="1"/>
+<line x1="80" y1="242.0" x2="860" y2="242.0" stroke="#e5e7eb" stroke-width="1"/>
+<text x="70" y="246" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">1000</text>
+<line x1="80" y1="194.0" x2="860" y2="194.0" stroke="#e5e7eb" stroke-width="1"/>
+<text x="70" y="198" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">2000</text>
+<line x1="80" y1="146.0" x2="860" y2="146.0" stroke="#e5e7eb" stroke-width="1"/>
+<text x="70" y="150" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">3000</text>
+<line x1="80" y1="98.0" x2="860" y2="98.0" stroke="#e5e7eb" stroke-width="1"/>
+<text x="70" y="102" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">4000</text>
+<line x1="80" y1="50.0" x2="860" y2="50.0" stroke="#e5e7eb" stroke-width="1"/>
+<text x="70" y="54" text-anchor="end" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">5000</text>
+<rect x="135.0" y="242.0" width="90" height="48.0" fill="#2563eb"/>
+<text x="180.0" y="236.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111827">1000</text>
+<text x="180.0" y="308.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">1000</text>
+<rect x="280.0" y="194.0" width="90" height="96.0" fill="#2563eb"/>
+<text x="325.0" y="188.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111827">2000</text>
+<text x="325.0" y="308.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">2000</text>
+<rect x="425.0" y="146.8" width="90" height="143.2" fill="#2563eb"/>
+<text x="470.0" y="140.8" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111827">2984</text>
+<text x="470.0" y="308.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">3000</text>
+<rect x="570.0" y="105.8" width="90" height="184.2" fill="#2563eb"/>
+<text x="615.0" y="99.8" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111827">3837</text>
+<text x="615.0" y="308.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">4000</text>
+<rect x="715.0" y="93.2" width="90" height="196.8" fill="#2563eb"/>
+<text x="760.0" y="87.2" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111827">4100</text>
+<text x="760.0" y="308.0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">5000</text>
+<text x="470" y="348" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">Target rate (req/s)</text>
+<text x="80" y="38" text-anchor="start" font-family="Arial, sans-serif" font-size="12" fill="#4b5563">Achieved req/s</text>
+</svg>

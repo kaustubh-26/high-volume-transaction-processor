@@ -1,6 +1,12 @@
 # High Volume Transaction Processor
 
-High Volume Transaction Processor is a production-style, event-driven transaction pipeline built with Java 21, Spring Boot, Kafka, Redis, PostgreSQL, MongoDB, and k6.
+**High Volume Transaction Processor** — *An event-driven transaction processor*
+
+![CI Status](https://github.com/kaustubh-26/high-volume-transaction-processor/actions/workflows/ci.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kaustubh-26_high-volume-transaction-processor&metric=alert_status)](https://sonarcloud.io/dashboard?id=kaustubh-26_high-volume-transaction-processor)
+![License](https://img.shields.io/github/license/kaustubh-26/high-volume-transaction-processor)
+
+A production-style, event-driven transaction pipeline showcasing signed API ingestion, asynchronous Kafka processing, Redis idempotency, PostgreSQL ledger writes, and MongoDB audit persistence.
 
 The repository is structured like a small payment platform:
 
@@ -164,8 +170,9 @@ Example request body:
 
 For working signing examples, see:
 
-- [`performance/k6/payload.js`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/payload.js)
-- [`performance/k6/new-transaction-load.js`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/new-transaction-load.js)
+- [`performance/k6/payload.js`](performance/k6/payload.js)
+- [`performance/k6/webhook-transaction-load.js`](performance/k6/webhook-transaction-load.js)
+
 
 ### Read Transaction Status
 
@@ -211,11 +218,38 @@ k6 run \
   performance/k6/transaction-load.js
 ```
 
-Performance chart from local ingress testing:
+### Performance Results
 
-![Ingress Throughput (k6)](docs/performance-chart.svg)
+This project includes k6-based load tests for the signed transaction ingestion endpoint to validate ingress behavior under sustained constant-arrival traffic.
 
-These results measure HTTP ingress throughput for the API service using [`performance/k6/new-transaction-load.js`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/new-transaction-load.js). A `202` response means the request was accepted for asynchronous processing, not that downstream persistence already completed.
+Because the system is intentionally asynchronous, these numbers represent HTTP ingress acceptance for `POST /api/v1/transactions`, not end-to-end completion of processor validation, ledger persistence, audit persistence, or webhook delivery.
+
+In local testing, the API maintained a `0` HTTP failure rate and returned `202 Accepted` for `100%` of completed requests across runs from `1K` to `10K` offered RPS. On the tested machine, actual accepted throughput scaled to roughly `2.3K–2.5K requests/second` before leveling off, while the HTTP layer remained responsive under higher offered load.
+
+#### Highlights
+
+- Sustained `1,000` offered RPS with `60,001` accepted requests in `60s`, `0` HTTP failures, `20.7 ms` average latency, `58.6 ms` p95, and `110.0 ms` p99.
+- Reached a peak accepted ingress throughput of about `2,497 requests/second` during the `4,000` offered RPS run.
+- Under `10,000` offered RPS, the API still completed `136,777` accepted requests in `60s` with `147.7 ms` average latency, `380.1 ms` p95, and `597.8 ms` p99.
+- The ingress layer stayed stable under overload instead of degrading into connection failures or 5xx-heavy behavior.
+
+#### Local ingress test results
+
+| Offered RPS | Accepted requests | Accepted RPS | HTTP failed rate | `202` rate | Avg ms | P95 ms | P99 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 60,001 | 1,000.0 | 0 | 1.0 | 20.7 | 58.6 | 110.0 |
+| 2,000 | 108,208 | 1,803.5 | 0 | 1.0 | 90.6 | 244.0 | 398.6 |
+| 4,000 | 149,838 | 2,497.3 | 0 | 1.0 | 140.9 | 393.4 | 613.7 |
+| 6,000 | 148,717 | 2,478.6 | 0 | 1.0 | 152.2 | 373.6 | 600.9 |
+| 8,000 | 139,912 | 2,331.9 | 0 | 1.0 | 162.9 | 403.8 | 632.0 |
+| 10,000 | 136,777 | 2,279.6 | 0 | 1.0 | 147.7 | 380.1 | 597.8 |
+
+#### Reading the results correctly
+
+A `202 Accepted` response in this project means the API accepted the request for asynchronous processing through Kafka. It does **not** mean the transaction has already been fully processed by downstream services.
+
+These results are therefore best read as proof that the front door is fast and resilient under load, not as a claim of `10K` end-to-end persisted transactions per second.
+
 
 More detail: [Load Testing](docs/load-testing.md)
 

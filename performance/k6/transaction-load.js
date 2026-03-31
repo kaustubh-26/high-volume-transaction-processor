@@ -1,8 +1,65 @@
 import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
-import { appConfig, loadProfile, thresholdsConfig } from './config.js';
-import { buildHeaders, buildTransactionPayload } from './payload.js';
+import crypto from 'k6/crypto';
+import encoding from 'k6/encoding';
+import exec from 'k6/execution';
+
+function envNumber(name, fallback) {
+  const value = __ENV[name];
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function envString(name, fallback) {
+  const value = __ENV[name];
+  return value === undefined || value === null || value === '' ? fallback : value;
+}
+
+function envBool(name, fallback) {
+  const value = __ENV[name];
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) {
+    return false;
+  }
+  return fallback;
+}
+
+const config = {
+  baseUrl: envString('BASE_URL', 'http://localhost:8080'),
+  path: envString('TXN_PATH', '/api/v1/transactions'),
+  merchantId: envString('MERCHANT_ID', 'merchant-demo'),
+  saltKey: envString('SALT_KEY', 'merchant-demo-secret-key'),
+  saltIndex: envString('SALT_INDEX', '1'),
+  currency: envString('CURRENCY', 'INR'),
+  callbackUrl: envString('CALLBACK_URL', 'http://192.168.1.102:9090/webhook'),
+  requestTimeout: envString('REQUEST_TIMEOUT', '5s'),
+  accountCardinality: envNumber('ACCOUNT_CARDINALITY', 10000),
+  fastIds: envBool('FAST_IDS', false),
+
+  rate: envNumber('RATE', 100),
+  duration: envString('DURATION', '60s'),
+  timeUnit: envString('TIME_UNIT', '1s'),
+  preAllocatedVUs: envNumber('PRE_ALLOCATED_VUS', 50),
+  maxVUs: envNumber('MAX_VUS', 1000),
+
+  thresholdHttpFailed: envString('THRESHOLD_HTTP_FAILED', 'rate==0'),
+  thresholdStatus202: envString('THRESHOLD_STATUS_202', 'rate==1'),
+  thresholdChecks: envString('THRESHOLD_CHECKS', 'rate==1'),
+  thresholdP95: envString('THRESHOLD_P95', 'p(95)<1000'),
+  thresholdP99: envString('THRESHOLD_P99', 'p(99)<2000'),
+};
 
 const acceptedRequests = new Counter('accepted_requests');
 const failedRequests = new Counter('failed_requests');
@@ -10,94 +67,158 @@ const status202Rate = new Rate('status_202_rate');
 const appCheckRate = new Rate('app_check_rate');
 const acceptedLatency = new Trend('accepted_latency_ms', true);
 const endToEndRequestDuration = new Trend('end_to_end_request_duration_ms', true);
-const status0 = new Counter('status_0');
-const status400 = new Counter('status_400');
-const status401 = new Counter('status_401');
-const status403 = new Counter('status_403');
-const status404 = new Counter('status_404');
-const status409 = new Counter('status_409');
-const status429 = new Counter('status_429');
-const status500 = new Counter('status_500');
-const status502 = new Counter('status_502');
-const status503 = new Counter('status_503');
-const status504 = new Counter('status_504');
-const statusOther = new Counter('status_other');
-
-function buildScenarios() {
-  if (loadProfile.mode === 'ramp') {
-    return {
-      transaction_ingress_ramp: {
-        executor: 'ramping-arrival-rate',
-        startRate: loadProfile.startRate,
-        timeUnit: loadProfile.timeUnit,
-        preAllocatedVUs: loadProfile.preAllocatedVUs,
-        maxVUs: loadProfile.maxVUs,
-        stages: [
-          { target: loadProfile.stage1Target, duration: loadProfile.stage1Duration },
-          { target: loadProfile.stage2Target, duration: loadProfile.stage2Duration },
-          { target: loadProfile.stage3Target, duration: loadProfile.stage3Duration },
-          { target: loadProfile.stage4Target, duration: loadProfile.stage4Duration },
-        ],
-      },
-    };
-  }
-
-  return {
-    transaction_ingress_constant: {
-      executor: 'constant-arrival-rate',
-      rate: loadProfile.rate,
-      timeUnit: loadProfile.timeUnit,
-      duration: loadProfile.duration,
-      preAllocatedVUs: loadProfile.preAllocatedVUs,
-      maxVUs: loadProfile.maxVUs,
-    },
-  };
-}
 
 export const options = {
-  discardResponseBodies: true,
-  scenarios: buildScenarios(),
+  discardResponseBodies: false,
+  scenarios: {
+    transaction_ingress_constant: {
+      executor: 'constant-arrival-rate',
+      rate: config.rate,
+      timeUnit: config.timeUnit,
+      duration: config.duration,
+      preAllocatedVUs: config.preAllocatedVUs,
+      maxVUs: config.maxVUs,
+    },
+  },
   thresholds: {
-    http_req_failed: [`rate<${thresholdsConfig.httpReqFailed}`],
-    checks: [`rate>${thresholdsConfig.checksRate}`],
-    status_202_rate: [`rate>${thresholdsConfig.acceptedRate}`],
-    app_check_rate: [`rate>${thresholdsConfig.checksRate}`],
-    http_req_duration: [`p(95)<${thresholdsConfig.p95Ms}`, `p(99)<${thresholdsConfig.p99Ms}`],
+    http_req_failed: [config.thresholdHttpFailed],
+    status_202_rate: [config.thresholdStatus202],
+    checks: [config.thresholdChecks],
+    app_check_rate: [config.thresholdChecks],
+    http_req_duration: [config.thresholdP95, config.thresholdP99],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
+function utcTimestamp() {
+  return new Date().toISOString().replace('.000Z', 'Z');
+}
+
+function accountIdForIteration(iteration) {
+  const bucket = iteration % config.accountCardinality;
+  return `acct-${String(bucket).padStart(8, '0')}`;
+}
+
+function buildPayload(idempotencyKey) {
+  const scenarioIteration = exec.scenario.iterationInTest;
+
+  return {
+    accountId: accountIdForIteration(scenarioIteration),
+    idempotencyKey,
+    amount: 100.0,
+    currency: config.currency,
+    type: scenarioIteration % 2 === 0 ? 'DEBIT' : 'CREDIT',
+    callback_url: config.callbackUrl,
+  };
+}
+
+function buildCanonicalJson(payload) {
+  return JSON.stringify(payload);
+}
+
+function sha256HexUpper(input) {
+  return crypto.sha256(input, 'hex').toUpperCase();
+}
+
+function base64Body(bodyString) {
+  return encoding.b64encode(bodyString);
+}
+
+function buildVerify(bodyString, path, timestamp, nonce, idempotencyKey) {
+  const raw = `${base64Body(bodyString)}${path}${timestamp}${nonce}${idempotencyKey}${config.saltKey}`;
+  const digest = sha256HexUpper(raw);
+  return `${digest}###${config.saltIndex}`;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function uuidFromBytes(bytes) {
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytesToHex(bytes);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function randomId() {
+  if (config.fastIds) {
+    return `${Date.now()}-${__VU}-${exec.vu.iterationInScenario}`;
+  }
+
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  if (typeof crypto.randomBytes === 'function') {
+    const buf = crypto.randomBytes(16);
+    const bytes = new Uint8Array(buf);
+    return uuidFromBytes(bytes);
+  }
+
+  return `${Date.now()}-${__VU}-${exec.vu.iterationInScenario}-${Math.floor(Math.random() * 1e9)}`;
+}
+
+function metricValue(metric, field, fallback = 'n/a') {
+  if (!metric || !metric.values) {
+    return fallback;
+  }
+
+  if (metric.values[field] !== undefined) {
+    return metric.values[field];
+  }
+
+  if (field === 'count' && metric.values.value !== undefined) {
+    return metric.values.value;
+  }
+
+  return fallback;
+}
+
 export function setup() {
   return {
-    url: `${appConfig.baseUrl}${appConfig.path}`,
+    url: `${config.baseUrl}${config.path}`,
+    path: config.path,
   };
 }
 
 export default function (data) {
-  const payload = buildTransactionPayload();
-  const body = JSON.stringify(payload);
-  const headers = buildHeaders(body, payload.idempotencyKey);
+  const idempotencyKey = `idem-${randomId()}`;
+  const payload = buildPayload(idempotencyKey);
+  const body = buildCanonicalJson(payload);
 
-  const response = http.post(
-    data.url,
-    body,
-    {
-      headers,
-      timeout: appConfig.requestTimeout,
-      tags: {
-        endpoint: 'create_transaction',
-        test_mode: loadProfile.mode,
-      },
-    }
-  );
+  const timestamp = utcTimestamp();
+  const nonce = randomId();
+  const correlationId = `corr-${randomId()}`;
+  const xVerify = buildVerify(body, data.path, timestamp, nonce, idempotencyKey);
+
+  const params = {
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Merchant-Id': config.merchantId,
+      'X-Timestamp': timestamp,
+      'X-Nonce': nonce,
+      'X-Verify': xVerify,
+      'Idempotency-Key': idempotencyKey,
+      'X-Correlation-Id': correlationId,
+    },
+    timeout: config.requestTimeout,
+    tags: {
+      endpoint: 'create_transaction',
+      auth_mode: 'phonepe_style_verify',
+      webhook_enabled: 'true',
+    },
+  };
+
+  const response = http.post(data.url, body, params);
 
   const isAccepted = response.status === 202;
   status202Rate.add(isAccepted);
   endToEndRequestDuration.add(response.timings.duration);
-  trackStatus(response.status);
 
   const checksPassed = check(response, {
     'status is 202': (r) => r.status === 202,
+    'response time under hard ceiling': (r) => r.timings.duration < 10000,
   });
 
   appCheckRate.add(checksPassed);
@@ -110,155 +231,24 @@ export default function (data) {
   }
 }
 
-
 export function handleSummary(data) {
-  const summary = {
-    testMode: loadProfile.mode,
-    baseUrl: appConfig.baseUrl,
-    path: appConfig.path,
-    configuredRate: loadProfile.rate,
-    configuredDuration: loadProfile.duration,
-    metrics: {
-      http_req_duration: data.metrics.http_req_duration,
-      http_req_failed: data.metrics.http_req_failed,
-      iterations: data.metrics.iterations,
-      checks: data.metrics.checks,
-      accepted_requests: data.metrics.accepted_requests,
-      failed_requests: data.metrics.failed_requests,
-      status_202_rate: data.metrics.status_202_rate,
-      status_0: data.metrics.status_0,
-      status_400: data.metrics.status_400,
-      status_401: data.metrics.status_401,
-      status_403: data.metrics.status_403,
-      status_404: data.metrics.status_404,
-      status_409: data.metrics.status_409,
-      status_429: data.metrics.status_429,
-      status_500: data.metrics.status_500,
-      status_502: data.metrics.status_502,
-      status_503: data.metrics.status_503,
-      status_504: data.metrics.status_504,
-      status_other: data.metrics.status_other,
-      app_check_rate: data.metrics.app_check_rate,
-      accepted_latency_ms: data.metrics.accepted_latency_ms,
-      end_to_end_request_duration_ms: data.metrics.end_to_end_request_duration_ms,
-    },
-  };
-
   return {
-    stdout: textSummary(summary, data),
-    'performance/k6/results/summary.json': JSON.stringify(summary, null, 2),
-  };
-}
-
-function metricValue(metric, field, fallback = 'n/a') {
-  if (!metric || !metric.values || metric.values[field] === undefined) {
-    return fallback;
-  }
-  return metric.values[field];
-}
-
-function textSummary(summary, raw) {
-  const duration = raw.state ? raw.state.testRunDurationMs : 'n/a';
-  const reqDuration = raw.metrics.http_req_duration;
-  const failedRate = raw.metrics.http_req_failed;
-  const iterations = raw.metrics.iterations;
-  const dropped = raw.metrics.dropped_iterations;
-  const accepted = raw.metrics.accepted_requests;
-  const failed = raw.metrics.failed_requests;
-  const acceptedRate = raw.metrics.status_202_rate;
-  const status0Metric = raw.metrics.status_0;
-  const status400Metric = raw.metrics.status_400;
-  const status401Metric = raw.metrics.status_401;
-  const status403Metric = raw.metrics.status_403;
-  const status404Metric = raw.metrics.status_404;
-  const status409Metric = raw.metrics.status_409;
-  const status429Metric = raw.metrics.status_429;
-  const status500Metric = raw.metrics.status_500;
-  const status502Metric = raw.metrics.status_502;
-  const status503Metric = raw.metrics.status_503;
-  const status504Metric = raw.metrics.status_504;
-  const statusOtherMetric = raw.metrics.status_other;
-
-  const durationMs = typeof duration === 'number' ? duration : 0;
-  const iterationCount = metricValue(iterations, 'count', 0);
-  const achievedRate = durationMs > 0
-    ? (iterationCount / durationMs) * 1000
-    : 'n/a';
-
-  return `
+    stdout: `
 === HVTP k6 Summary ===
-mode: ${summary.testMode}
-target url: ${summary.baseUrl}${summary.path}
-duration_ms: ${duration}
+mode: constant
+target url: ${config.baseUrl}${config.path}
+callback_url: ${config.callbackUrl}
 
-iterations_count: ${metricValue(iterations, 'count')}
-dropped_iterations: ${metricValue(dropped, 'count')}
-achieved_rate_per_sec: ${typeof achievedRate === 'number' ? achievedRate.toFixed(2) : achievedRate}
-accepted_requests: ${metricValue(accepted, 'count')}
-failed_requests: ${metricValue(failed, 'count')}
-http_failed_rate: ${metricValue(failedRate, 'rate')}
-status_202_rate: ${metricValue(acceptedRate, 'rate')}
+iterations_count: ${metricValue(data.metrics.iterations, 'count')}
+accepted_requests: ${metricValue(data.metrics.accepted_requests, 'count')}
+failed_requests: ${metricValue(data.metrics.failed_requests, 'count')}
+http_failed_rate: ${metricValue(data.metrics.http_req_failed, 'rate')}
+status_202_rate: ${metricValue(data.metrics.status_202_rate, 'rate')}
 
-http_req_duration_avg_ms: ${metricValue(reqDuration, 'avg')}
-http_req_duration_p95_ms: ${metricValue(reqDuration, 'p(95)')}
-http_req_duration_p99_ms: ${metricValue(reqDuration, 'p(99)')}
-http_req_duration_max_ms: ${metricValue(reqDuration, 'max')}
-
-status_0_count: ${metricValue(status0Metric, 'count')}
-status_400_count: ${metricValue(status400Metric, 'count')}
-status_401_count: ${metricValue(status401Metric, 'count')}
-status_403_count: ${metricValue(status403Metric, 'count')}
-status_404_count: ${metricValue(status404Metric, 'count')}
-status_409_count: ${metricValue(status409Metric, 'count')}
-status_429_count: ${metricValue(status429Metric, 'count')}
-status_500_count: ${metricValue(status500Metric, 'count')}
-status_502_count: ${metricValue(status502Metric, 'count')}
-status_503_count: ${metricValue(status503Metric, 'count')}
-status_504_count: ${metricValue(status504Metric, 'count')}
-status_other_count: ${metricValue(statusOtherMetric, 'count')}
-
-checks_rate: ${metricValue(raw.metrics.checks, 'rate')}
-`.trim();
-}
-
-function trackStatus(status) {
-  switch (status) {
-    case 0:
-      status0.add(1);
-      break;
-    case 202:
-      break;
-    case 400:
-      status400.add(1);
-      break;
-    case 401:
-      status401.add(1);
-      break;
-    case 403:
-      status403.add(1);
-      break;
-    case 404:
-      status404.add(1);
-      break;
-    case 409:
-      status409.add(1);
-      break;
-    case 429:
-      status429.add(1);
-      break;
-    case 500:
-      status500.add(1);
-      break;
-    case 502:
-      status502.add(1);
-      break;
-    case 503:
-      status503.add(1);
-      break;
-    case 504:
-      status504.add(1);
-      break;
-    default:
-      statusOther.add(1);
-  }
+http_req_duration_avg_ms: ${metricValue(data.metrics.http_req_duration, 'avg')}
+http_req_duration_p95_ms: ${metricValue(data.metrics.http_req_duration, 'p(95)')}
+http_req_duration_p99_ms: ${metricValue(data.metrics.http_req_duration, 'p(99)')}
+http_req_duration_max_ms: ${metricValue(data.metrics.http_req_duration, 'max')}
+`.trim(),
+  };
 }

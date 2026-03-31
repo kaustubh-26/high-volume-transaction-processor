@@ -145,7 +145,7 @@ The status endpoint is backed by PostgreSQL `ledger_entries`, so keep these expe
 
 If you need a code reference for the request-signing algorithm, use:
 
-- [`performance/k6/payload.js`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/payload.js)
+- [`performance/k6/transaction-load.js`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/transaction-load.js)
 - [`api-service/src/main/java/com/kaustubh/transactions/api/security/VerifySignatureFilter.java`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/api-service/src/main/java/com/kaustubh/transactions/api/security/VerifySignatureFilter.java)
 
 The formula is:

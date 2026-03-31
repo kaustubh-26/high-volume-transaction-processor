@@ -149,7 +149,7 @@ docker compose down
 - `Idempotency-Key`
 - `X-Correlation-Id` (optional but recommended)
 
-The verify header format used by the API and the k6 scripts is:
+The verify header format used by the API and the k6 script is:
 
 ```text
 X-Verify = SHA256_HEX_UPPER(BASE64(body) + path + timestamp + nonce + idempotencyKey + saltKey) + "###" + saltIndex
@@ -170,8 +170,8 @@ Example request body:
 
 For working signing examples, see:
 
-- [`performance/k6/payload.js`](performance/k6/payload.js)
-- [`performance/k6/webhook-transaction-load.js`](performance/k6/webhook-transaction-load.js)
+- [`performance/k6/transaction-load.js`](performance/k6/transaction-load.js)
+- [`api-service/src/main/java/com/kaustubh/transactions/api/security/VerifySignatureFilter.java`](api-service/src/main/java/com/kaustubh/transactions/api/security/VerifySignatureFilter.java)
 
 
 ### Read Transaction Status
@@ -204,17 +204,18 @@ More detail: [Kafka Topics & Event Contracts](docs/kafka-topics.md)
 ## Load Testing
 
 k6 scripts live in `performance/k6` and automatically generate the required request signing headers.
+The maintained load script includes `callback_url` so the payload matches the current documented request shape.
 
 Example:
 
 ```bash
 k6 run \
   -e BASE_URL=http://localhost:8080 \
-  -e MODE=constant \
+  -e CALLBACK_URL=http://localhost:9090/webhook \
   -e RATE=100 \
   -e DURATION=60s \
-  -e PRE_ALLOCATED_VUS=50 \
-  -e MAX_VUS=300 \
+  -e PRE_ALLOCATED_VUS=200 \
+  -e MAX_VUS=2000 \
   performance/k6/transaction-load.js
 ```
 
@@ -224,13 +225,13 @@ This project includes k6-based load tests for the signed transaction ingestion e
 
 Because the system is intentionally asynchronous, these numbers represent HTTP ingress acceptance for `POST /api/v1/transactions`, not end-to-end completion of processor validation, ledger persistence, audit persistence, or webhook delivery.
 
-In local testing, the API maintained a `0` HTTP failure rate and returned `202 Accepted` for `100%` of completed requests across runs from `1K` to `10K` offered RPS. On the tested machine, actual accepted throughput scaled to roughly `2.3K–2.5K requests/second` before leveling off, while the HTTP layer remained responsive under higher offered load.
+In local testing, the API maintained a `0` HTTP failure rate and returned `202 Accepted` for `100%` of completed HTTP requests across runs from `1K` to `100K` offered RPS. On the tested machine, actual accepted throughput scaled to roughly **3.1K–3.2K requests/second** before leveling off, while the HTTP layer remained responsive under higher offered load.
 
 #### Highlights
 
 - Sustained `1,000` offered RPS with `60,001` accepted requests in `60s`, `0` HTTP failures, `20.7 ms` average latency, `58.6 ms` p95, and `110.0 ms` p99.
-- Reached a peak accepted ingress throughput of about `2,497 requests/second` during the `4,000` offered RPS run.
-- Under `10,000` offered RPS, the API still completed `136,777` accepted requests in `60s` with `147.7 ms` average latency, `380.1 ms` p95, and `597.8 ms` p99.
+- Reached a peak measured accepted ingress throughput of about **`3,172.5 requests/second`** during the `50,000` offered RPS run.
+- Under `100,000` offered RPS, the API still completed `189,936` accepted requests in `60s` with `243.5 ms` average latency, `619.9 ms` p95, and `1,237.9 ms` p99.
 - The ingress layer stayed stable under overload instead of degrading into connection failures or 5xx-heavy behavior.
 
 #### Local ingress test results
@@ -243,12 +244,38 @@ In local testing, the API maintained a `0` HTTP failure rate and returned `202 A
 | 6,000 | 148,717 | 2,478.6 | 0 | 1.0 | 152.2 | 373.6 | 600.9 |
 | 8,000 | 139,912 | 2,331.9 | 0 | 1.0 | 162.9 | 403.8 | 632.0 |
 | 10,000 | 136,777 | 2,279.6 | 0 | 1.0 | 147.7 | 380.1 | 597.8 |
+| 50,000 | 190,348 | 3,172.5 | 0 | 1.0 | 238.3 | 579.0 | 939.5 |
+| 100,000 | 189,936 | 3,165.6 | 0 | 1.0 | 243.5 | 619.9 | 1,237.9 |
 
 #### Reading the results correctly
 
 A `202 Accepted` response in this project means the API accepted the request for asynchronous processing through Kafka. It does **not** mean the transaction has already been fully processed by downstream services.
 
-These results are therefore best read as proof that the front door is fast and resilient under load, not as a claim of `10K` end-to-end persisted transactions per second.
+These results should therefore be interpreted as **HTTP ingress acceptance throughput**, not end-to-end completion across validation, ledger persistence, audit storage, or webhook delivery.
+
+As the offered load increases, the system scales up to a point and then reaches a **saturation threshold**. In this setup, accepted throughput levels off at approximately **3.1K–3.2K requests/second**, even when the offered load is increased to `50K` and `100K` RPS.
+
+Beyond this point, additional load primarily increases **request latency (especially P95/P99)** rather than improving throughput, while the system continues to maintain **0% HTTP failures**.
+
+This behavior demonstrates that the ingress layer remains stable under overload and degrades gracefully, rather than failing with connection errors or 5xx responses.
+
+### Test Environment
+
+- **CPU**: Intel Core i5-1135G7 (**4 cores / 8 threads**)
+- **RAM**: **16 GB**
+- **Storage**: **NVMe SSD**
+- **OS**: **Ubuntu 22.04 LTS**
+- **Docker**: **29.2.1**
+- **Docker Compose**: **v5.1.0**
+- **JDK**: **OpenJDK 21**
+- **k6**: **v1.6.1**
+- **Execution Model**:
+  - Application services (`api-service`, `processor-service`, `ledger-writer-service`, `audit-service`) and infrastructure (Kafka, Redis, PostgreSQL, MongoDB) running via **Docker Compose**
+  - Load generator executed from the **same machine**
+- **Benchmark Notes**:
+  - These results reflect a **single-machine local Docker-based environment**
+  - Measured values represent **HTTP ingress acceptance throughput**, not guaranteed production throughput
+  - Actual throughput and latency will vary based on available CPU, RAM, disk I/O, Docker/container overhead, and deployment topology
 
 
 More detail: [Load Testing](docs/load-testing.md)

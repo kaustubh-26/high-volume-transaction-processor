@@ -1,16 +1,12 @@
 # Load Testing
 
-The repository includes k6 scripts under `performance/k6` for driving the signed transaction ingress endpoint.
+The repository includes k6 script under `performance/k6` for driving the signed transaction ingress endpoint.
 
 ## Available Scripts
 
 | Script | Purpose |
 | --- | --- |
-| `performance/k6/transaction-load.js` | Main reusable script with constant and ramp profiles |
-| `performance/k6/new-transaction-load.js` | Self-contained constant-arrival script used for the README ingress chart |
-| `performance/k6/webhook-transaction-load.js` | Constant-arrival script that includes `callback_url` in the payload |
-| `performance/k6/config.js` | Shared environment variable parsing and load profile config |
-| `performance/k6/payload.js` | Shared payload generation and signing helpers |
+| `performance/k6/transaction-load.js` | Constant-arrival script that includes `callback_url` in the payload |
 
 ## What The Scripts Handle For You
 
@@ -44,16 +40,16 @@ You usually only need to provide the correct base URL and merchant secret if you
 
 ## Example Commands
 
-### Constant 100 RPS
+### Constant 1000 RPS
 
 ```bash
 k6 run \
   -e BASE_URL=http://localhost:8080 \
   -e MODE=constant \
-  -e RATE=100 \
+  -e RATE=1000 \
   -e DURATION=60s \
-  -e PRE_ALLOCATED_VUS=50 \
-  -e MAX_VUS=300 \
+  -e PRE_ALLOCATED_VUS=200 \
+  -e MAX_VUS=1000 \
   performance/k6/transaction-load.js
 ```
 
@@ -83,7 +79,7 @@ k6 run \
   -e CALLBACK_URL=http://localhost:9090/webhook \
   -e RATE=100 \
   -e DURATION=60s \
-  performance/k6/webhook-transaction-load.js
+  performance/k6/transaction-load.js
 ```
 
 ## Output And Interpretation
@@ -109,8 +105,3 @@ That is why the README performance chart is described as ingress throughput, not
 - Increase `ACCOUNT_CARDINALITY` if you want to spread more requests across account keys.
 - Turn on `FAST_IDS=true` when pushing high arrival rates to reduce client-side ID generation overhead.
 - Use the webhook script only when you have a callback receiver available; delivery is best-effort on the server side.
-
-## Related Files
-
-- [`docs/performance-chart.svg`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/docs/performance-chart.svg)
-- [`performance/k6/run-examples.md`](/home/kaustubh/Desktop/projects/Java/high-volume-transaction-processor/performance/k6/run-examples.md)

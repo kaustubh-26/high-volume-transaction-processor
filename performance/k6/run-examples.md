@@ -4,9 +4,10 @@
 ```bash
 k6 run \
   -e BASE_URL=http://localhost:8080 \
-  -e MODE=constant \
+  -e CALLBACK_URL=http://localhost:9090/webhook \
   -e RATE=100 \
   -e DURATION=60s \
   -e PRE_ALLOCATED_VUS=50 \
   -e MAX_VUS=300 \
-  performance/k6/transaction-load.js
+  performance/k6/webhook-transaction-load.js
+```
